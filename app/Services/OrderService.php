@@ -97,8 +97,8 @@ class OrderService
                     ]
                 ]],
                 'application_context' => [
-                    'cancel_url' => "http://localhost:5173/checkout/success/{$order->id}",
-                    'return_url' => "http://localhost:5173/checkout/cancel/{$order->id}",
+                    'cancel_url' => "http://localhost:5173/checkout/cancel/{$order->id}",
+                    'return_url' => "http://localhost:5173/checkout/success/{$order->id}",
                 ],
             ]);
 
