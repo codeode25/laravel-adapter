@@ -14,6 +14,10 @@ class OrderService
 {
     public function createOrder(User $user, array $productIds, string $gateway): string
     {
+        if (!in_array($gateway, ['paypal', 'stripe'])) {
+            throw new \Exception('Invalid payment gateway');
+        }
+
         $products = Product::whereIn('id', $productIds)->get();
 
         if ($products->count() !== count(array_unique($productIds))) {
@@ -32,10 +36,6 @@ class OrderService
         $order->products()->attach(
             collect($productIds)->mapWithKeys(fn($id) => [$id => ['quantity' => 1]])
         );
-
-        if (!in_array($gateway, ['paypal', 'stripe'])) {
-            throw new \Exception('Invalid payment gateway');
-        }
 
         // stripe
         if ($gateway === 'stripe') {
