@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id');
             $table->unsignedInteger('total');
-            $table->string('currency')->default('usd');
+            $table->string('currency')->default('USD');
             $table->string('payment_gateway');
             $table->string('transaction_id')->nullable();
             $table->string('status')->default('pending');

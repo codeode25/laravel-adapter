@@ -19,8 +19,10 @@ class CheckoutController extends Controller
             ]
         );
 
+        $user = $request->user();
+
         try {
-            $redirectURL = $this->orderService->createOrder($request->product_ids, $request->gateway);
+            $redirectURL = $this->orderService->createOrder($user, $request->product_ids, $request->gateway);
 
             return response()->json(['redirect_url' => $redirectURL]);
         } catch (\Exception $e) {

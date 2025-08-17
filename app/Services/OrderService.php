@@ -3,11 +3,16 @@
 namespace App\Services;
 
 use Exception;
+use App\Models\User;
+use App\Models\Order;
+use App\Models\Product;
+use Stripe\StripeClient;
 use Illuminate\Support\Facades\Log;
+use Srmklive\PayPal\Services\PayPal;
 
 class OrderService
 {
-    public function createOrder(array $productIds, string $gateway): string
+    public function createOrder(User $user, array $productIds, string $gateway): string
     {
         $products = Product::whereIn('id', $productIds)->get();
 
@@ -18,6 +23,7 @@ class OrderService
         $total = $products->sum('price');
 
         $order = Order::create([
+            'user_id' => $user->id,
             'total' => $total,
             'currency' => 'USD',
             'payment_gateway' => $gateway,
@@ -44,9 +50,9 @@ class OrderService
         // side ffects
     }
 
-    private function createStripeCheckoutSession(Order $order): array
+    private function createStripeCheckoutSession(Order $order): string
     {
-        $stripe = new StripeClient(config('services.stripe.secret'));
+        $stripe = new StripeClient(config('stripe.stripe_secret'));
         try {
             $session = $stripe->checkout->sessions->create([
                 'payment_method_types' => ['card'],
@@ -59,8 +65,8 @@ class OrderService
                     'quantity' => 1,
                 ]],
                 'mode' => 'payment',
-                'success_url' => "http://localhost:5173/success/{$order->id}?session_id={CHECKOUT_SESSION_ID}",
-                'cancel_url' => "http://localhost:5173/cancel/{$order->id}?session_id={CHECKOUT_SESSION_ID}",
+                'success_url' => "http://localhost:5173/checkout/success/{$order->id}?session_id={CHECKOUT_SESSION_ID}",
+                'cancel_url' => "http://localhost:5173/checkout/cancel/{$order->id}?session_id={CHECKOUT_SESSION_ID}",
             ]);
 
             $order->update(['transaction_id' => $session->id]);
@@ -72,9 +78,11 @@ class OrderService
         }
     }
 
-    private function createPayPalApprovalLink(Order $order)
+    private function createPayPalApprovalLink(Order $order): string
     {
         $paypal = new Paypal(config('paypal'));
+        $token = $paypal->getAccessToken();
+        $paypal->setAccessToken($token);
 
         $amount = number_format($order->total / 100, 2, '.', '');
         
@@ -89,8 +97,8 @@ class OrderService
                     ]
                 ]],
                 'application_context' => [
-                    'cancel_url' => "http://localhost:5173/success/{$order->id}",
-                    'return_url' => "http://localhost:5173/cancel/{$order->id}",
+                    'cancel_url' => "http://localhost:5173/checkout/success/{$order->id}",
+                    'return_url' => "http://localhost:5173/checkout/cancel/{$order->id}",
                 ],
             ]);
 
